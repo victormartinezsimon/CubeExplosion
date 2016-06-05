@@ -10,10 +10,9 @@ public class GameManager : MonoBehaviour {
       return _instance;
   }
 
-  private int actualHeight = 0;
-
   public Camera _camera;
   public float initialHeight = 0.5f;
+  public float separationHeight = 3f;
 
   [Header("GameObjects that will be instantiated")]
   public GameObject _Player;
@@ -25,6 +24,9 @@ public class GameManager : MonoBehaviour {
   private Vector3 sizeGround;
   private Vector3 sizeDead;
   private Vector3 initialPosition;
+
+  private int actualLevel = 0;
+  private float lastPositionY;
 
   // Use this for initialization
   void Start () {
@@ -48,7 +50,7 @@ public class GameManager : MonoBehaviour {
     initialBuild();
     setInitialCameraPosition();
     instantiatePlayers();
-    actualHeight = 0;
+    actualLevel = 0;
   }
   private void calculateInitialInformation()
   {
@@ -65,14 +67,16 @@ public class GameManager : MonoBehaviour {
     buildLateralDead();
     buildInitialStart();
     buildSaveBox();
+    buildFirstLevel();
+    builSecondLevel();
   }
 
   private void buildLateralDead()
   {
-    int totalIterations = Mathf.RoundToInt((initialPosition.y - bottomLeft.y) / sizeDead.y) + 4;// extra 4 just to allways have more
+    int totalIterations = Mathf.RoundToInt((initialPosition.y - bottomLeft.y) / sizeDead.y) + 1;// extra 2 just to allways have more
 
     //left part
-    float actualY = initialPosition.y - sizeDead.y * 1.5f;
+    float actualY = initialPosition.y - sizeDead.y;
     float actualX = bottomLeft.x + sizeDead.x / 2f;
     for(int i = 0; i < totalIterations; i++)
     {
@@ -83,7 +87,7 @@ public class GameManager : MonoBehaviour {
     }
 
     //right part
-    actualY = initialPosition.y - sizeDead.y * 1.5f;
+    actualY = initialPosition.y - sizeDead.y;
     actualX = topRight.x - sizeDead.x / 2f;
     for (int i = 0; i < totalIterations; i++)
     {
@@ -93,25 +97,6 @@ public class GameManager : MonoBehaviour {
     }
 
   }
-
-  private void buildInitialStart()
-  {
-
-    float actualX = bottomLeft.x + sizeDead.x + sizeGround.x/2;
-    float actualY = initialPosition.y;
-
-    int totalIterations = Mathf.RoundToInt(((topRight.x - sizeGround.x) - (bottomLeft.x + sizeGround.x))/sizeGround.x);
-    totalIterations -= 4;
-
-    for(int i = 0; i < totalIterations; i++)
-    {
-      GameObject go = Instantiate(_Ground) as GameObject;
-      go.transform.position = new Vector3(actualX, actualY, 0);
-      actualX += sizeGround.x;
-    }
-
-  }
-
   private void buildSaveBox()
   {
     buildSaveBoxTop();
@@ -135,7 +120,7 @@ public class GameManager : MonoBehaviour {
   }
   private void buildSaveBoxLateral()
   {
-    int totalIterations = Mathf.RoundToInt((topRight.x - initialPosition.x) / sizeGround.x);
+    int totalIterations = Mathf.RoundToInt((topRight.y - initialPosition.y) / sizeGround.y);
     ++totalIterations;
     //left
     float actualX = bottomLeft.x + sizeDead.x/2;
@@ -158,6 +143,60 @@ public class GameManager : MonoBehaviour {
     }
 
   }
+  private void buildInitialStart()
+  {
+    float actualX = bottomLeft.x + sizeDead.x + sizeGround.x / 2;
+    float actualY = initialPosition.y;
+
+    int totalIterations = Mathf.RoundToInt(((topRight.x - sizeGround.x) - (bottomLeft.x + sizeGround.x)) / sizeGround.x);
+    totalIterations -= 4;
+
+    for (int i = 0; i < totalIterations; i++)
+    {
+      GameObject go = Instantiate(_Ground) as GameObject;
+      go.transform.position = new Vector3(actualX, actualY, 0);
+      actualX += sizeGround.x;
+    }
+    lastPositionY = actualY;
+  }
+  private void buildFirstLevel()
+  {
+    float actualX = topRight.x - sizeDead.x - sizeGround.x / 2;
+    float actualY = initialPosition.y - (sizeGround.y * separationHeight);
+
+    int totalIterations = Mathf.RoundToInt(((topRight.x - sizeGround.x) - (bottomLeft.x + sizeGround.x)) / sizeGround.x);
+    totalIterations -= 4;
+
+    for (int i = 0; i < totalIterations; i++)
+    {
+      GameObject go = Instantiate(_Ground) as GameObject;
+      go.transform.position = new Vector3(actualX, actualY, 0);
+      actualX -= sizeGround.x;
+    }
+    lastPositionY = actualY;
+  }
+  private void builSecondLevel()
+  {
+    float actualX = bottomLeft.x + sizeDead.x + sizeGround.x / 2;
+    float actualY = lastPositionY - (sizeGround.y * separationHeight);
+
+    int totalIterations = Mathf.RoundToInt(((topRight.x - sizeGround.x) - (bottomLeft.x + sizeGround.x)) / sizeGround.x);
+    totalIterations -= 4;
+
+    for (int i = 0; i < totalIterations; i++)
+    {
+      GameObject go = Instantiate(_Ground) as GameObject;
+      go.transform.position = new Vector3(actualX, actualY, 0);
+      actualX += sizeGround.x;
+    }
+    lastPositionY = actualY;
+  }
+
+  private void increaseLevel()
+  {
+
+  }
+
   #endregion
 
   #region CAMERA
