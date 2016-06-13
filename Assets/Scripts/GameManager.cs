@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class GameManager : MonoBehaviour {
 
@@ -14,11 +15,6 @@ public class GameManager : MonoBehaviour {
   public float initialHeight = 0.5f;
   public float separationHeight = 3f;
 
-  [Header("GameObjects that will be instantiated")]
-  public GameObject _Player;
-  public GameObject _Dead;
-  public GameObject _Ground;
-
   private Vector3 bottomLeft;
   private Vector3 topRight;
   private Vector3 sizeGround;
@@ -27,6 +23,9 @@ public class GameManager : MonoBehaviour {
 
   private int actualLevel = 0;
   private float lastPositionY;
+
+  public int totalPlayers = 30;
+  public List<GameObject> m_players;
 
   // Use this for initialization
   void Start () {
@@ -56,8 +55,8 @@ public class GameManager : MonoBehaviour {
   {
     bottomLeft = _camera.ScreenToWorldPoint(Vector3.zero);
     topRight = _camera.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height, 0));
-    sizeGround = _Ground.GetComponent<Renderer>().bounds.size;
-    sizeDead = _Dead.GetComponent<Renderer>().bounds.size;
+    sizeGround = Pool.getInstance().Ground.GetComponent<Renderer>().bounds.size;
+    sizeDead = Pool.getInstance().Dead.GetComponent<Renderer>().bounds.size;
     initialPosition = _camera.ScreenToWorldPoint(new Vector3(0, Screen.height * initialHeight, 0));
   }
 
@@ -73,25 +72,25 @@ public class GameManager : MonoBehaviour {
 
   private void buildLateralDead()
   {
-    int totalIterations = Mathf.RoundToInt((initialPosition.y - bottomLeft.y) / sizeDead.y) + 1;// extra 2 just to allways have more
+    int totalIterations = (int)separationHeight * 2;
 
     //left part
     float actualY = initialPosition.y - sizeDead.y;
     float actualX = bottomLeft.x + sizeDead.x / 2f;
     for(int i = 0; i < totalIterations; i++)
     {
-      GameObject go = Instantiate(_Dead) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.DEAD);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualY -= sizeDead.y;
       go.transform.Rotate(0, 180, 0);
     }
 
     //right part
-    actualY = initialPosition.y - sizeDead.y;
+    actualY = initialPosition.y - sizeDead.y - separationHeight * sizeDead.y;
     actualX = topRight.x - sizeDead.x / 2f;
-    for (int i = 0; i < totalIterations; i++)
+    for (int i = 0; i < totalIterations - separationHeight; i++)
     {
-      GameObject go = Instantiate(_Dead) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.DEAD);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualY -= sizeDead.y;
     }
@@ -113,7 +112,7 @@ public class GameManager : MonoBehaviour {
     ++totalIterations;
     for (int i = 0; i < totalIterations; i++)
     {
-      GameObject go = Instantiate(_Ground) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.GROUND);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualX += sizeGround.x;
     }
@@ -127,17 +126,17 @@ public class GameManager : MonoBehaviour {
     float actualY = initialPosition.y;
     for(int i = 0; i < totalIterations; i++)
     {
-      GameObject go = Instantiate(_Ground) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.GROUND);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualY += sizeGround.y;
     }
 
     //right
     actualX = topRight.x - sizeDead.x / 2;
-    actualY = initialPosition.y;
-    for (int i = 0; i < totalIterations; i++)
+    actualY = initialPosition.y - separationHeight * sizeGround.y;
+    for (int i = 0; i < totalIterations + separationHeight; i++)
     {
-      GameObject go = Instantiate(_Ground) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.GROUND);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualY += sizeGround.y;
     }
@@ -153,7 +152,7 @@ public class GameManager : MonoBehaviour {
 
     for (int i = 0; i < totalIterations; i++)
     {
-      GameObject go = Instantiate(_Ground) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.GROUND);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualX += sizeGround.x;
     }
@@ -169,7 +168,7 @@ public class GameManager : MonoBehaviour {
 
     for (int i = 0; i < totalIterations; i++)
     {
-      GameObject go = Instantiate(_Ground) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.GROUND);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualX -= sizeGround.x;
     }
@@ -185,7 +184,7 @@ public class GameManager : MonoBehaviour {
 
     for (int i = 0; i < totalIterations; i++)
     {
-      GameObject go = Instantiate(_Ground) as GameObject;
+      GameObject go = Pool.getGameObject(Pool.Type.GROUND);
       go.transform.position = new Vector3(actualX, actualY, 0);
       actualX += sizeGround.x;
     }
@@ -198,7 +197,6 @@ public class GameManager : MonoBehaviour {
   }
 
   #endregion
-
   #region CAMERA
   private void setInitialCameraPosition()
   {
@@ -212,8 +210,27 @@ public class GameManager : MonoBehaviour {
   #region PLAYERS
   private void instantiatePlayers()
   {
+    StartCoroutine(instantiatePlayersWithTime(0.2f));
 
   }
+
+  private IEnumerator instantiatePlayersWithTime(float time)
+  {
+    float posY = initialPosition.y + separationHeight / 2;
+    float posX = -sizeGround.x * 3;
+    Vector2 margin = new Vector2(sizeGround.x * 2, sizeGround.y);
+    m_players = new List<GameObject>();
+
+    for (int i = 0; i < totalPlayers; i++)
+    {
+      GameObject go = Pool.getGameObject(Pool.Type.PLAYER);
+      Vector2 newPos = new Vector2(posX + Random.Range(0, margin.y), posY + Random.Range(0, margin.y));
+      go.transform.position = new Vector3(newPos.x, newPos.y, 0);
+      m_players.Add(go);
+      yield return new WaitForSeconds(time);
+    }
+  }
+
   #endregion
 
 }
